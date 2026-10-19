@@ -1,0 +1,84 @@
+{% extends 'base.html' %}
+
+{% block title %}Register - Campus QR Attendance{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center py-4">
+    <div class="col-md-7 col-lg-6">
+        <div class="card border-0 shadow-sm p-4">
+            <div class="text-center mb-4">
+                <div class="bg-success text-white rounded-circle d-inline-flex align-items-center justify-content-center mb-2" style="width: 54px; height: 54px;">
+                    <i class="bi bi-person-plus fs-4"></i>
+                </div>
+                <h3 class="fw-bold mb-1">Create an Account</h3>
+                <p class="text-muted small">Join Campus QR Attendance as a Student or Faculty member</p>
+            </div>
+
+            <form method="POST" action="{{ url_for('register') }}">
+                <div class="mb-3">
+                    <label for="name" class="form-label fw-semibold">Full Name</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-person"></i></span>
+                        <input type="text" class="form-control" id="name" name="name" placeholder="Prof. Jane Doe or Alex Smith" required autofocus>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="email" class="form-label fw-semibold">Campus Email Address</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-envelope"></i></span>
+                        <input type="email" class="form-control" id="email" name="email" placeholder="username@campus.edu" required>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="password" class="form-label fw-semibold">Password</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-lock"></i></span>
+                        <input type="password" class="form-control" id="password" name="password" placeholder="At least 6 characters" required minlength="6">
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label fw-semibold d-block">Select Role</label>
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <input type="radio" class="btn-check" name="role" id="role_student" value="student" checked autocomplete="off">
+                            <label class="btn btn-outline-success w-100 p-3 text-start" for="role_student">
+                                <div class="d-flex align-items-center gap-2 mb-1">
+                                    <i class="bi bi-mortarboard fs-5"></i>
+                                    <strong>Student</strong>
+                                </div>
+                                <div class="small opacity-75">Enroll & scan QR</div>
+                            </label>
+                        </div>
+                        <div class="col-6">
+                            <input type="radio" class="btn-check" name="role" id="role_faculty" value="faculty" autocomplete="off">
+                            <label class="btn btn-outline-primary w-100 p-3 text-start" for="role_faculty">
+                                <div class="d-flex align-items-center gap-2 mb-1">
+                                    <i class="bi bi-person-video3 fs-5"></i>
+                                    <strong>Faculty</strong>
+                                </div>
+                                <div class="small opacity-75">Create courses & QR</div>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-grid mb-3">
+                    <button type="submit" class="btn btn-primary btn-lg fw-semibold">
+                        <i class="bi bi-check2-circle me-1"></i> Complete Registration
+                    </button>
+                </div>
+            </form>
+
+            <div class="text-center pt-3 border-top">
+                <p class="text-muted small mb-0">
+                    Already have an account? 
+                    <a href="{{ url_for('login') }}" class="fw-semibold text-primary">Sign In</a>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

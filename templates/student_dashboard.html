@@ -1,0 +1,190 @@
+{% extends 'base.html' %}
+
+{% block title %}Student Dashboard - Campus QR Attendance{% endblock %}
+
+{% block content %}
+<!-- Top Header -->
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+    <div>
+        <h2 class="fw-bold mb-1">
+            <i class="bi bi-mortarboard text-success me-2"></i>Student Dashboard
+        </h2>
+        <p class="text-muted mb-0">Track your attendance across all registered courses and join new classes.</p>
+    </div>
+    <div>
+        <a href="#enrollSection" class="btn btn-outline-primary">
+            <i class="bi bi-plus-circle me-1"></i> Enroll in New Course
+        </a>
+    </div>
+</div>
+
+<!-- Global Low Attendance Warning Alert -->
+{% if has_any_low_attendance %}
+    <div class="alert alert-danger border-0 shadow-sm d-flex align-items-center gap-3 mb-4" role="alert">
+        <i class="bi bi-exclamation-octagon-fill fs-2 text-danger flex-shrink-0"></i>
+        <div>
+            <h5 class="alert-heading fw-bold mb-1">Low Attendance Alert!</h5>
+            <p class="mb-0 small">
+                Your attendance has fallen below the mandatory <strong>{{ threshold }}%</strong> threshold in one or more courses. 
+                Please attend your upcoming classes regularly to maintain eligibility for semester examinations.
+            </p>
+        </div>
+    </div>
+{% endif %}
+
+<!-- Enrolled Courses -->
+<div class="row g-4 mb-5">
+    <div class="col-12">
+        <h4 class="fw-bold mb-3"><i class="bi bi-journal-check text-primary me-2"></i>My Enrolled Courses</h4>
+    </div>
+
+    {% if course_stats %}
+        {% for stat in course_stats %}
+            {% set c = stat.course %}
+            <div class="col-md-6 col-lg-4">
+                <div class="card h-100 border-0 shadow-sm {% if stat.is_low %}border-top border-4 border-danger{% endif %}">
+                    <div class="card-body p-4 d-flex flex-column">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <span class="badge bg-secondary-subtle text-dark border px-2 py-1 rounded fw-semibold">
+                                {{ c.code }}
+                            </span>
+                            {% if stat.is_low %}
+                                <span class="badge bg-danger text-white">
+                                    <i class="bi bi-exclamation-triangle-fill me-1"></i> Below {{ threshold|int }}%
+                                </span>
+                            {% else %}
+                                <span class="badge bg-success-subtle text-success border border-success-subtle">
+                                    <i class="bi bi-shield-check me-1"></i> Good Standing
+                                </span>
+                            {% endif %}
+                        </div>
+
+                        <h5 class="card-title fw-bold text-dark mb-1">{{ c.name }}</h5>
+                        <p class="text-muted small mb-3">Instructor: {{ stat.faculty_name }}</p>
+
+                        <!-- Attendance Statistics -->
+                        <div class="p-3 bg-light rounded-3 my-2">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span class="small text-muted fw-semibold">Attendance Record:</span>
+                                <span class="fw-bold text-dark">{{ stat.attended }} / {{ stat.total }} Classes</span>
+                            </div>
+
+                            <div class="d-flex align-items-center gap-2 mt-2">
+                                <div class="progress flex-grow-1" style="height: 12px;">
+                                    <div class="progress-bar {% if stat.is_low %}bg-danger{% else %}bg-success{% endif %}"
+                                         role="progressbar"
+                                         style="width: {{ stat.percentage }}%;"
+                                         aria-valuenow="{{ stat.percentage }}"
+                                         aria-valuemin="0"
+                                         aria-valuemax="100">
+                                    </div>
+                                </div>
+                                <span class="fw-bold {% if stat.is_low %}text-danger{% else %}text-success{% endif %}">
+                                    {{ stat.percentage }}%
+                                </span>
+                            </div>
+                        </div>
+
+                        {% if stat.is_low %}
+                            <div class="alert alert-danger py-2 px-3 small mt-auto mb-0">
+                                <i class="bi bi-info-circle me-1"></i> Attend next class to recover your percentage.
+                            </div>
+                        {% else %}
+                            <div class="text-muted small mt-auto pt-2">
+                                <i class="bi bi-check2 text-success me-1"></i> Attendance requirement satisfied.
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    {% else %}
+        <div class="col-12">
+            <div class="card border-0 shadow-sm p-4 text-center">
+                <div class="text-muted mb-2"><i class="bi bi-inbox fs-1"></i></div>
+                <h5>You are not enrolled in any courses yet.</h5>
+                <p class="text-muted small">Enter your instructor's Course Code below to register for your classes.</p>
+            </div>
+        </div>
+    {% endif %}
+</div>
+
+<!-- Enroll in Course & Recent Attendance -->
+<div class="row g-4" id="enrollSection">
+    <!-- Enroll Form Column -->
+    <div class="col-lg-5">
+        <div class="card border-0 shadow-sm p-4 h-100">
+            <div class="d-flex align-items-center gap-2 mb-3">
+                <div class="bg-primary text-white rounded-3 p-2">
+                    <i class="bi bi-plus-lg"></i>
+                </div>
+                <div>
+                    <h5 class="fw-bold mb-0">Enroll in Course</h5>
+                    <small class="text-muted">Enter code provided by faculty</small>
+                </div>
+            </div>
+
+            <form method="POST" action="{{ url_for('enroll_course') }}">
+                <div class="mb-3">
+                    <label for="enroll_code" class="form-label fw-semibold">Course Code</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-hash"></i></span>
+                        <input type="text" class="form-control" id="enroll_code" name="code" placeholder="e.g. CS101" required style="text-transform: uppercase;">
+                    </div>
+                    <div class="form-text">Codes are case-insensitive (e.g., cs101 or CS101).</div>
+                </div>
+
+                <button type="submit" class="btn btn-primary w-100 fw-semibold">
+                    <i class="bi bi-person-check me-1"></i> Enroll into Course
+                </button>
+            </form>
+
+            <div class="mt-4 p-3 bg-light rounded-3 small text-muted">
+                <i class="bi bi-camera me-1 text-primary"></i> <strong>How to mark attendance:</strong>
+                When in class, open your phone camera and scan the QR code projected on the whiteboard by your professor!
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Attendance Log Column -->
+    <div class="col-lg-7">
+        <div class="card border-0 shadow-sm p-4 h-100">
+            <h5 class="fw-bold mb-3"><i class="bi bi-clock-history text-primary me-2"></i>My Recent Check-ins</h5>
+            {% if recent_attendances %}
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Course</th>
+                                <th>Session Date</th>
+                                <th class="text-end">Timestamp</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for att in recent_attendances %}
+                                <tr>
+                                    <td>
+                                        <span class="badge bg-secondary-subtle text-dark border me-1">{{ att.session.course.code }}</span>
+                                        <strong>{{ att.session.course.name }}</strong>
+                                    </td>
+                                    <td class="text-muted small">
+                                        {{ att.marked_at.strftime('%b %d, %Y') }}
+                                    </td>
+                                    <td class="text-end font-monospace text-muted small">
+                                        {{ att.marked_at.strftime('%H:%M:%S UTC') }}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="text-center py-4 text-muted small">
+                    <i class="bi bi-journal-x fs-2 text-secondary opacity-50 d-block mb-2"></i>
+                    No attendance records found yet. Scan your first classroom QR code to record attendance.
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

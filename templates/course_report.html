@@ -1,0 +1,297 @@
+{% extends 'base.html' %}
+
+{% block title %}Course Report - {{ course.code }}{% endblock %}
+
+{% block extra_head %}
+<!-- Chart.js for Attendance Analytics -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<!-- Top Header & Breadcrumbs -->
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+    <div>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-1 small">
+                <li class="breadcrumb-item"><a href="{{ url_for('faculty_dashboard') }}">Faculty Dashboard</a></li>
+                <li class="breadcrumb-item active" aria-current="page">{{ course.code }} Report</li>
+            </ol>
+        </nav>
+        <h2 class="fw-bold mb-0">
+            <span class="badge bg-primary-subtle text-primary border border-primary-subtle me-2">{{ course.code }}</span>
+            {{ course.name }}
+        </h2>
+    </div>
+    <div class="d-flex flex-wrap gap-2">
+        <a href="{{ url_for('export_course_csv', course_id=course.id) }}" class="btn btn-outline-success shadow-sm">
+            <i class="bi bi-file-earmark-spreadsheet me-1"></i> Export CSV
+        </a>
+        <form method="POST" action="{{ url_for('send_attendance_alerts', course_id=course.id) }}" onsubmit="return confirm('Send attendance alert notifications to all students below {{ threshold }}%?');">
+            <button type="submit" class="btn btn-outline-danger shadow-sm">
+                <i class="bi bi-send-exclamation me-1"></i> Send Low Alerts
+            </button>
+        </form>
+        <form method="POST" action="{{ url_for('start_session', course_id=course.id) }}">
+            <button type="submit" class="btn btn-primary shadow-sm fw-semibold">
+                <i class="bi bi-qr-code-scan me-1"></i> Start New Class
+            </button>
+        </form>
+    </div>
+</div>
+
+<!-- Metrics Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-sm-6 col-lg-3">
+        <div class="card border-0 shadow-sm p-3 stat-card">
+            <div class="text-muted small text-uppercase fw-semibold">Enrolled Students</div>
+            <div class="d-flex align-items-baseline justify-content-between mt-1">
+                <span class="fs-2 fw-bold text-dark">{{ enrolled_count }}</span>
+                <i class="bi bi-people fs-3 text-primary opacity-50"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="card border-0 shadow-sm p-3 stat-card">
+            <div class="text-muted small text-uppercase fw-semibold">Sessions Conducted</div>
+            <div class="d-flex align-items-baseline justify-content-between mt-1">
+                <span class="fs-2 fw-bold text-dark">{{ total_sessions }}</span>
+                <i class="bi bi-calendar-check fs-3 text-primary opacity-50"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="card border-0 shadow-sm p-3 stat-card success">
+            <div class="text-muted small text-uppercase fw-semibold">Class Average</div>
+            <div class="d-flex align-items-baseline justify-content-between mt-1">
+                <span class="fs-2 fw-bold text-success">{{ average_attendance }}%</span>
+                <i class="bi bi-graph-up-arrow fs-3 text-success opacity-50"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="card border-0 shadow-sm p-3 stat-card {% if low_attendance_count > 0 %}danger{% else %}success{% endif %}">
+            <div class="text-muted small text-uppercase fw-semibold">Students At Risk (<{{ threshold|int }}%)</div>
+            <div class="d-flex align-items-baseline justify-content-between mt-1">
+                <span class="fs-2 fw-bold {% if low_attendance_count > 0 %}text-danger{% else %}text-success{% endif %}">
+                    {{ low_attendance_count }}
+                </span>
+                <i class="bi bi-exclamation-octagon fs-3 {% if low_attendance_count > 0 %}text-danger{% else %}text-success{% endif %} opacity-50"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Chart & Insights -->
+<div class="row g-4 mb-4">
+    <div class="col-lg-8">
+        <div class="card border-0 shadow-sm p-4 h-100">
+            <h5 class="fw-bold mb-3"><i class="bi bi-pie-chart-fill text-primary me-2"></i>Attendance Compliance</h5>
+            <div class="row align-items-center">
+                <div class="col-md-5 text-center">
+                    <div style="max-height: 200px; display: flex; justify-content: center;">
+                        <canvas id="attendancePieChart"></canvas>
+                    </div>
+                </div>
+                <div class="col-md-7">
+                    <div class="p-3 bg-light rounded-3">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span><i class="bi bi-circle-fill text-success me-1 small"></i> Satisfactory (&ge;{{ threshold }}%)</span>
+                            <strong>{{ enrolled_count - low_attendance_count }} students</strong>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span><i class="bi bi-circle-fill text-danger me-1 small"></i> Low Attendance (&lt;{{ threshold }}%)</span>
+                            <strong>{{ low_attendance_count }} students</strong>
+                        </div>
+                        <hr class="my-2">
+                        <small class="text-muted">
+                            Threshold is currently set to <strong>{{ threshold }}%</strong>. Students with attendance below this requirement are highlighted in red below and may be barred from semester examinations.
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="card border-0 shadow-sm p-4 h-100">
+            <h5 class="fw-bold mb-3"><i class="bi bi-info-circle-fill text-primary me-2"></i>Quick Actions</h5>
+            <div class="d-grid gap-2">
+                <a href="{{ url_for('export_course_csv', course_id=course.id) }}" class="btn btn-outline-dark text-start">
+                    <i class="bi bi-download me-2"></i> Download Full CSV Sheet
+                </a>
+                <form method="POST" action="{{ url_for('send_attendance_alerts', course_id=course.id) }}">
+                    <button type="submit" class="btn btn-outline-danger w-100 text-start">
+                        <i class="bi bi-envelope-exclamation me-2"></i> Email Defaulters (&lt;{{ threshold }}%)
+                    </button>
+                </form>
+                <a href="{{ url_for('faculty_dashboard') }}" class="btn btn-outline-secondary text-start">
+                    <i class="bi bi-arrow-left-circle me-2"></i> Back to Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Student Attendance Table -->
+<div class="card border-0 shadow-sm p-4 mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h5 class="fw-bold mb-0"><i class="bi bi-table text-primary me-2"></i>Student Attendance Roster</h5>
+            <small class="text-muted">Showing all enrolled students sorted by attendance percentage</small>
+        </div>
+        <div>
+            <span class="badge bg-light text-dark border">
+                <i class="bi bi-funnel me-1"></i> Threshold: {{ threshold }}%
+            </span>
+        </div>
+    </div>
+
+    {% if student_reports %}
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th style="width: 50px;">#</th>
+                        <th>Student Name</th>
+                        <th>Email</th>
+                        <th class="text-center">Attended / Total</th>
+                        <th style="min-width: 180px;">Attendance %</th>
+                        <th class="text-center">Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for rep in student_reports %}
+                        <tr class="{% if rep.is_low %}table-danger{% endif %}">
+                            <td class="text-muted">{{ loop.index }}</td>
+                            <td class="fw-semibold text-dark">
+                                {% if rep.is_low %}
+                                    <i class="bi bi-exclamation-triangle-fill text-danger me-1" title="Low Attendance Alert"></i>
+                                {% else %}
+                                    <i class="bi bi-check-circle-fill text-success me-1"></i>
+                                {% endif %}
+                                {{ rep.student.name }}
+                            </td>
+                            <td class="text-muted small">{{ rep.student.email }}</td>
+                            <td class="text-center fw-semibold">
+                                {{ rep.attended }} / {{ rep.total }}
+                            </td>
+                            <td>
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="progress flex-grow-1" style="height: 10px;">
+                                        <div class="progress-bar {% if rep.is_low %}bg-danger{% else %}bg-success{% endif %}"
+                                             role="progressbar"
+                                             style="width: {{ rep.percentage }}%;"
+                                             aria-valuenow="{{ rep.percentage }}"
+                                             aria-valuemin="0"
+                                             aria-valuemax="100">
+                                        </div>
+                                    </div>
+                                    <span class="fw-bold small {% if rep.is_low %}text-danger{% else %}text-success{% endif %}" style="min-width: 45px;">
+                                        {{ rep.percentage }}%
+                                    </span>
+                                </div>
+                            </td>
+                            <td class="text-center">
+                                {% if rep.is_low %}
+                                    <span class="badge bg-danger text-white">
+                                        <i class="bi bi-bell-fill me-1"></i> Below 75%
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle">
+                                        <i class="bi bi-shield-check me-1"></i> Satisfactory
+                                    </span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div class="text-center py-5 text-muted">
+            <i class="bi bi-people fs-1 text-secondary opacity-50 d-block mb-2"></i>
+            <h6>No students enrolled in this course yet.</h6>
+            <p class="small">Share your course code <strong>{{ course.code }}</strong> with your class so they can enroll.</p>
+        </div>
+    {% endif %}
+</div>
+
+<!-- Past Sessions Log -->
+<div class="card border-0 shadow-sm p-4">
+    <h5 class="fw-bold mb-3"><i class="bi bi-clock-history text-primary me-2"></i>Class Session History</h5>
+    {% if recent_sessions %}
+        <div class="table-responsive">
+            <table class="table table-sm table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Session #</th>
+                        <th>Created Date & Time</th>
+                        <th>Expires At</th>
+                        <th>Total Attendees</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for s in recent_sessions %}
+                        <tr>
+                            <td class="fw-semibold">#{{ s.id }}</td>
+                            <td>{{ s.created_at.strftime('%Y-%m-%d %H:%M:%S UTC') }}</td>
+                            <td>
+                                {{ s.expires_at.strftime('%H:%M:%S UTC') }}
+                                {% if s.is_expired %}
+                                    <span class="badge bg-secondary-subtle text-secondary ms-1">Closed</span>
+                                {% else %}
+                                    <span class="badge bg-success-subtle text-success ms-1">Active</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge bg-primary rounded-pill">{{ s.attendances|length }} students</span>
+                            </td>
+                            <td class="text-end">
+                                <a href="{{ url_for('session_view', session_id=s.id) }}" class="btn btn-outline-primary btn-sm py-0">
+                                    <i class="bi bi-eye"></i> View
+                                </a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div class="text-center py-3 text-muted small">No class sessions conducted yet.</div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Initialize Chart.js Attendance Distribution
+    document.addEventListener("DOMContentLoaded", () => {
+        const satisfactory = {{ enrolled_count - low_attendance_count }};
+        const atRisk = {{ low_attendance_count }};
+        
+        const ctx = document.getElementById('attendancePieChart');
+        if (ctx) {
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Satisfactory (>=75%)', 'At Risk (<75%)'],
+                    datasets: [{
+                        data: [satisfactory, atRisk],
+                        backgroundColor: ['#10b981', '#ef4444'],
+                        borderWidth: 2,
+                        borderColor: '#ffffff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    cutout: '70%'
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}

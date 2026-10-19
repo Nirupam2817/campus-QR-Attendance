@@ -1,0 +1,94 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ title }} - Campus QR Attendance{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center py-4">
+    <div class="col-md-7 col-lg-5">
+        <div class="card border-0 shadow-lg text-center p-4 p-md-5">
+            <!-- Icon State Indicator -->
+            <div class="mb-4">
+                {% if status == 'success' %}
+                    <div class="bg-success text-white rounded-circle d-inline-flex align-items-center justify-content-center shadow" style="width: 80px; height: 80px;">
+                        <i class="bi bi-check-lg" style="font-size: 3rem;"></i>
+                    </div>
+                {% elif status == 'warning' %}
+                    <div class="bg-warning text-dark rounded-circle d-inline-flex align-items-center justify-content-center shadow" style="width: 80px; height: 80px;">
+                        <i class="bi bi-exclamation-triangle" style="font-size: 2.5rem;"></i>
+                    </div>
+                {% else %}
+                    <div class="bg-danger text-white rounded-circle d-inline-flex align-items-center justify-content-center shadow" style="width: 80px; height: 80px;">
+                        <i class="bi bi-x-lg" style="font-size: 2.7rem;"></i>
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- Header Title -->
+            <h3 class="fw-bold mb-2 {% if status == 'success' %}text-success{% elif status == 'warning' %}text-warning-emphasis{% else %}text-danger{% endif %}">
+                {{ title }}
+            </h3>
+
+            <!-- Message Description -->
+            <p class="text-secondary mb-4 px-2">
+                {{ message }}
+            </p>
+
+            <!-- Course & Student Summary Details -->
+            {% if course or current_user.is_authenticated %}
+                <div class="bg-light rounded-3 p-3 text-start small mb-4 border">
+                    {% if course %}
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="text-muted">Course:</span>
+                            <span class="fw-bold text-dark">{{ course.code }} - {{ course.name }}</span>
+                        </div>
+                    {% endif %}
+                    {% if current_user.is_authenticated %}
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="text-muted">Student:</span>
+                            <span class="fw-semibold text-dark">{{ current_user.name }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="text-muted">Email:</span>
+                            <span class="text-muted">{{ current_user.email }}</span>
+                        </div>
+                    {% endif %}
+                    {% if attendance %}
+                        <div class="d-flex justify-content-between">
+                            <span class="text-muted">Marked At:</span>
+                            <span class="font-monospace text-dark">{{ attendance.marked_at.strftime('%Y-%m-%d %H:%M:%S UTC') }}</span>
+                        </div>
+                    {% endif %}
+                </div>
+            {% endif %}
+
+            <!-- Interactive Actions -->
+            <div class="d-grid gap-2">
+                {% if can_enroll and course %}
+                    <form method="POST" action="{{ url_for('enroll_course') }}">
+                        <input type="hidden" name="code" value="{{ course.code }}">
+                        <button type="submit" class="btn btn-outline-primary w-100 fw-semibold mb-2">
+                            <i class="bi bi-plus-circle me-1"></i> Enroll in {{ course.code }} Now
+                        </button>
+                    </form>
+                {% endif %}
+
+                {% if current_user.is_authenticated %}
+                    {% if current_user.is_student() %}
+                        <a href="{{ url_for('student_dashboard') }}" class="btn btn-primary btn-lg fw-semibold shadow-sm">
+                            <i class="bi bi-mortarboard me-1"></i> Go to Student Dashboard
+                        </a>
+                    {% else %}
+                        <a href="{{ url_for('faculty_dashboard') }}" class="btn btn-primary btn-lg fw-semibold shadow-sm">
+                            <i class="bi bi-speedometer2 me-1"></i> Go to Faculty Dashboard
+                        </a>
+                    {% endif %}
+                {% else %}
+                    <a href="{{ url_for('login') }}" class="btn btn-primary btn-lg fw-semibold shadow-sm">
+                        <i class="bi bi-box-arrow-in-right me-1"></i> Sign In
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

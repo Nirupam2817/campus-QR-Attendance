@@ -1,0 +1,253 @@
+{% extends 'base.html' %}
+
+{% block title %}Live Session - {{ session.course.code }}{% endblock %}
+
+{% block content %}
+<div class="row g-4 align-items-start">
+    <!-- QR Code & Countdown Column (Left) -->
+    <div class="col-lg-5 text-center">
+        <div class="card border-0 shadow-sm p-4 sticky-lg-top" style="top: 80px;">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-1 rounded-pill fw-bold">
+                    {{ session.course.code }}
+                </span>
+                <span id="liveStatusBadge" class="badge bg-success text-white d-flex align-items-center gap-1">
+                    <span class="pulse-indicator" style="width: 8px; height: 8px;"></span> LIVE
+                </span>
+            </div>
+
+            <h4 class="fw-bold mb-1">{{ session.course.name }}</h4>
+            <p class="text-muted small mb-3">Project this QR code on the classroom screen for students to scan.</p>
+
+            <!-- QR Code Display Box -->
+            <div class="my-2 position-relative d-inline-block">
+                <div id="qrWrapper" class="qr-container">
+                    <img id="qrImage" src="{{ url_for('qr_image', token=session.token) }}" alt="Attendance QR Code" class="qr-image img-fluid">
+                </div>
+                <!-- Expired Overlay -->
+                <div id="expiredOverlay" class="position-absolute top-50 start-50 translate-middle w-100 h-100 d-none justify-content-center align-items-center rounded-3" style="background: rgba(15, 23, 42, 0.88); backdrop-filter: blur(2px);">
+                    <div class="text-white p-3 text-center">
+                        <i class="bi bi-clock-history fs-1 text-danger mb-2 d-block"></i>
+                        <h5 class="fw-bold text-white mb-1">Session Expired</h5>
+                        <p class="small text-white-50 mb-0">Attendance window has closed.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Countdown Timer Display -->
+            <div class="my-3">
+                <div class="small text-muted text-uppercase fw-semibold mb-1">Time Remaining to Scan</div>
+                <div id="countdownTimer" class="timer-badge text-primary bg-light py-2 px-3 rounded-3 d-inline-block border">
+                    --:--
+                </div>
+            </div>
+
+            <!-- Wi-Fi URL & Copy Link Helper -->
+            <div class="p-2 bg-light rounded-3 text-start mb-3 border">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span class="small fw-bold text-secondary">
+                        <i class="bi bi-wifi me-1 text-primary"></i> Scan URL:
+                    </span>
+                    <button class="btn btn-outline-secondary btn-sm py-0 px-2" style="font-size: 0.75rem;" onclick="copyScanUrl()">
+                        <i class="bi bi-clipboard me-1"></i> Copy Link
+                    </button>
+                </div>
+                <div class="text-truncate small text-muted font-monospace" id="scanUrlText" title="{{ scan_url }}">
+                    {{ scan_url }}
+                </div>
+            </div>
+
+            <div class="d-flex gap-2 justify-content-center">
+                <a href="{{ url_for('course_report', course_id=session.course_id) }}" class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-arrow-left me-1"></i> Course Report
+                </a>
+                <a href="{{ url_for('faculty_dashboard') }}" class="btn btn-primary btn-sm">
+                    <i class="bi bi-check2-circle me-1"></i> Done / Back to Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Live Attendees Column (Right) -->
+    <div class="col-lg-7">
+        <div class="card border-0 shadow-sm p-4">
+            <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
+                <div>
+                    <h5 class="fw-bold mb-0">
+                        <i class="bi bi-people-fill text-primary me-2"></i>Live Attendance Log
+                    </h5>
+                    <span class="text-muted small">Auto-refreshes every 3 seconds</span>
+                </div>
+                <div>
+                    <span class="badge bg-primary fs-6 px-3 py-2 rounded-pill shadow-sm">
+                        <span id="attendeeCountBadge">{{ attendees|length }}</span> Present
+                    </span>
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0" id="attendeesTable">
+                    <thead class="table-light">
+                        <tr>
+                            <th scope="col" style="width: 50px;">#</th>
+                            <th scope="col">Student Name</th>
+                            <th scope="col">Email</th>
+                            <th scope="col" class="text-end">Marked At</th>
+                        </tr>
+                    </thead>
+                    <tbody id="attendeesTableBody">
+                        {% if attendees %}
+                            {% for att in attendees %}
+                                <tr>
+                                    <td class="text-muted">{{ loop.index }}</td>
+                                    <td class="fw-semibold text-dark">
+                                        <i class="bi bi-check-circle-fill text-success me-1"></i>
+                                        {{ att.student.name }}
+                                    </td>
+                                    <td class="text-muted small">{{ att.student.email }}</td>
+                                    <td class="text-end text-muted small font-monospace">
+                                        {{ att.marked_at.strftime('%H:%M:%S') }}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr id="emptyRow">
+                                <td colspan="4" class="text-center py-4 text-muted">
+                                    <div class="spinner-grow spinner-grow-sm text-primary me-2" role="status"></div>
+                                    Waiting for students to scan the QR code...
+                                </td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Initial remaining time in seconds from server
+    let remainingSeconds = {{ seconds_remaining }};
+    const sessionId = {{ session.id }};
+    const timerElement = document.getElementById('countdownTimer');
+    const liveStatusBadge = document.getElementById('liveStatusBadge');
+    const expiredOverlay = document.getElementById('expiredOverlay');
+    const attendeeCountBadge = document.getElementById('attendeeCountBadge');
+    const tableBody = document.getElementById('attendeesTableBody');
+
+    // Format seconds into MM:SS
+    function formatTime(seconds) {
+        if (seconds <= 0) return "00:00";
+        const m = Math.floor(seconds / 60);
+        const s = seconds % 60;
+        return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    }
+
+    // Update countdown UI
+    function updateTimerUI() {
+        if (remainingSeconds <= 0) {
+            timerElement.textContent = "EXPIRED";
+            timerElement.classList.remove('text-primary');
+            timerElement.classList.add('text-danger', 'bg-danger-subtle');
+            
+            liveStatusBadge.classList.remove('bg-success');
+            liveStatusBadge.classList.add('bg-secondary');
+            liveStatusBadge.innerHTML = '<i class="bi bi-stop-circle me-1"></i> EXPIRED';
+
+            expiredOverlay.classList.remove('d-none');
+            expiredOverlay.classList.add('d-flex');
+            return;
+        }
+
+        timerElement.textContent = formatTime(remainingSeconds);
+
+        // Turn red in the last 60 seconds
+        if (remainingSeconds <= 60) {
+            timerElement.classList.remove('text-primary');
+            timerElement.classList.add('text-danger', 'bg-danger-subtle');
+        }
+    }
+
+    updateTimerUI();
+
+    // 1-Second Countdown Interval
+    const countdownInterval = setInterval(() => {
+        if (remainingSeconds > 0) {
+            remainingSeconds--;
+            updateTimerUI();
+        } else {
+            clearInterval(countdownInterval);
+        }
+    }, 1000);
+
+    // 3-Second Real-Time Attendees Polling
+    async function pollSessionStatus() {
+        try {
+            const response = await fetch(`/api/session/${sessionId}/status`);
+            if (!response.ok) return;
+
+            const data = await response.json();
+
+            // Sync countdown if variance is significant
+            if (Math.abs(remainingSeconds - data.seconds_remaining) > 3) {
+                remainingSeconds = data.seconds_remaining;
+                updateTimerUI();
+            }
+
+            // Update attendee count
+            attendeeCountBadge.textContent = data.attendee_count;
+
+            // Re-render attendee table
+            if (data.attendees && data.attendees.length > 0) {
+                let html = '';
+                data.attendees.forEach((att, index) => {
+                    html += `
+                        <tr>
+                            <td class="text-muted">${index + 1}</td>
+                            <td class="fw-semibold text-dark">
+                                <i class="bi bi-check-circle-fill text-success me-1"></i>
+                                ${escapeHtml(att.name)}
+                            </td>
+                            <td class="text-muted small">${escapeHtml(att.email)}</td>
+                            <td class="text-end text-muted small font-monospace">${att.marked_at}</td>
+                        </tr>
+                    `;
+                });
+                tableBody.innerHTML = html;
+            }
+
+            // Check if expired on server
+            if (data.is_expired && remainingSeconds > 0) {
+                remainingSeconds = 0;
+                updateTimerUI();
+            }
+        } catch (err) {
+            console.error("Error polling attendance status:", err);
+        }
+    }
+
+    // Helper to prevent XSS
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    // Poll every 3 seconds while active
+    const pollingInterval = setInterval(() => {
+        pollSessionStatus();
+    }, 3000);
+
+    // Copy Scan URL function
+    function copyScanUrl() {
+        const urlText = document.getElementById('scanUrlText').innerText.trim();
+        navigator.clipboard.writeText(urlText).then(() => {
+            alert('Scan link copied to clipboard!\nYou can open this in another browser tab or on mobile to test attendance marking.');
+        }).catch(() => {
+            prompt('Copy this link manually:', urlText);
+        });
+    }
+</script>
+{% endblock %}

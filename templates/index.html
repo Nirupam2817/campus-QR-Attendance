@@ -1,0 +1,133 @@
+{% extends 'base.html' %}
+
+{% block title %}Home - Campus QR Attendance System{% endblock %}
+
+{% block content %}
+<div class="row align-items-center py-5">
+    <div class="col-lg-7 text-center text-lg-start mb-4 mb-lg-0">
+        <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-2 mb-3 rounded-pill fw-medium">
+            <i class="bi bi-patch-check-fill me-1"></i> Anti-Proxy Attendance Solution
+        </span>
+        <h1 class="display-4 fw-bold text-dark lh-sm mb-3">
+            Touchless, Real-Time <br>
+            <span class="text-primary">Campus QR Attendance</span>
+        </h1>
+        <p class="lead text-secondary mb-4">
+            A secure attendance platform designed for college classrooms. Faculty project a time-sensitive QR code, students scan with their mobile phones, and attendance records update instantly with duplicate prevention.
+        </p>
+        <div class="d-flex flex-wrap gap-3 justify-content-center justify-content-lg-start">
+            <a href="{{ url_for('register') }}" class="btn btn-primary btn-lg px-4 shadow-sm">
+                <i class="bi bi-person-plus-fill me-2"></i> Register Account
+            </a>
+            <a href="{{ url_for('login') }}" class="btn btn-outline-dark btn-lg px-4">
+                <i class="bi bi-box-arrow-in-right me-2"></i> Sign In
+            </a>
+        </div>
+    </div>
+    <div class="col-lg-5 text-center">
+        <div class="card shadow-lg border-0 p-4 bg-white">
+            <div class="text-center mb-3">
+                <i class="bi bi-qr-code text-primary" style="font-size: 7rem;"></i>
+            </div>
+            <h5 class="fw-bold mb-1">Dynamic Class QR</h5>
+            <p class="text-muted small mb-3">
+                Cryptographically random token valid for 5 minutes. Real-time participant tracking on instructor screen.
+            </p>
+            <div class="d-flex justify-content-center gap-2">
+                <span class="badge bg-success-subtle text-success border border-success-subtle">
+                    <i class="bi bi-clock-history me-1"></i> 5-Min Expiry
+                </span>
+                <span class="badge bg-info-subtle text-info border border-info-subtle">
+                    <i class="bi bi-shield-lock me-1"></i> Duplicate Proof
+                </span>
+                <span class="badge bg-danger-subtle text-danger border border-danger-subtle">
+                    <i class="bi bi-bell me-1"></i> 75% Alert
+                </span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Key Features by Role -->
+<div class="row g-4 my-4">
+    <div class="col-md-6">
+        <div class="card h-100 border-0 shadow-sm p-4">
+            <div class="d-flex align-items-center gap-3 mb-3">
+                <div class="bg-primary text-white rounded-3 p-3 d-flex align-items-center justify-content-center">
+                    <i class="bi bi-person-video3 fs-3"></i>
+                </div>
+                <div>
+                    <h4 class="fw-bold mb-0">For Faculty</h4>
+                    <span class="text-muted small">Course Instructors & Professors</span>
+                </div>
+            </div>
+            <ul class="list-unstyled text-secondary mb-4 space-y-2">
+                <li class="py-1"><i class="bi bi-check2-circle text-primary me-2"></i> Create and organize course modules (e.g., CS101, MATH201).</li>
+                <li class="py-1"><i class="bi bi-check2-circle text-primary me-2"></i> Generate live QR sessions with countdown timers.</li>
+                <li class="py-1"><i class="bi bi-check2-circle text-primary me-2"></i> Watch students populate the attendee table in real-time.</li>
+                <li class="py-1"><i class="bi bi-check2-circle text-primary me-2"></i> View course analytics and export CSV reports.</li>
+            </ul>
+            <a href="{{ url_for('register') }}" class="btn btn-outline-primary mt-auto">Get Started as Faculty &rarr;</a>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card h-100 border-0 shadow-sm p-4">
+            <div class="d-flex align-items-center gap-3 mb-3">
+                <div class="bg-success text-white rounded-3 p-3 d-flex align-items-center justify-content-center">
+                    <i class="bi bi-mortarboard fs-3"></i>
+                </div>
+                <div>
+                    <h4 class="fw-bold mb-0">For Students</h4>
+                    <span class="text-muted small">Enrolled College Students</span>
+                </div>
+            </div>
+            <ul class="list-unstyled text-secondary mb-4 space-y-2">
+                <li class="py-1"><i class="bi bi-check2-circle text-success me-2"></i> Enroll into classes instantly with instructor Course Codes.</li>
+                <li class="py-1"><i class="bi bi-check2-circle text-success me-2"></i> Scan the projected QR code directly using any smartphone camera.</li>
+                <li class="py-1"><i class="bi bi-check2-circle text-success me-2"></i> Check attendance percentages with clear visual progress bars.</li>
+                <li class="py-1"><i class="bi bi-check2-circle text-success me-2"></i> Automatic alert notifications when below the 75% requirement.</li>
+            </ul>
+            <a href="{{ url_for('register') }}" class="btn btn-outline-success mt-auto">Get Started as Student &rarr;</a>
+        </div>
+    </div>
+</div>
+
+<!-- Workflow Steps -->
+<div class="py-4">
+    <div class="text-center mb-5">
+        <h3 class="fw-bold">How The System Works</h3>
+        <p class="text-muted">A seamless 3-step verification flow from classroom to gradebook</p>
+    </div>
+    
+    <div class="row g-4 text-center">
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm p-4 h-100">
+                <div class="fs-1 fw-bold text-primary mb-2">01</div>
+                <h5 class="fw-bold mb-2">Instructor Starts Session</h5>
+                <p class="text-muted small mb-0">
+                    Faculty starts class with one click. Flask issues a cryptographically secure token valid for 5 minutes and displays a live QR code.
+                </p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm p-4 h-100">
+                <div class="fs-1 fw-bold text-primary mb-2">02</div>
+                <h5 class="fw-bold mb-2">Student Scans with Mobile</h5>
+                <p class="text-muted small mb-0">
+                    Students scan the projected screen. The system validates login, session expiry, course enrollment, and duplicate records.
+                </p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm p-4 h-100">
+                <div class="fs-1 fw-bold text-primary mb-2">03</div>
+                <h5 class="fw-bold mb-2">Instant Record & Analytics</h5>
+                <p class="text-muted small mb-0">
+                    Attendance is timestamped in SQLite. The faculty screen updates dynamically, and student dashboard percentages update in real time.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
